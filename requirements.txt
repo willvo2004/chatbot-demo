@@ -1,0 +1,4 @@
+azure-functions
+beautifulsoup4
+aiohttp
+azure-storage-blob
