@@ -1,3 +1,4 @@
+from typing import Tuple
 from selenium.webdriver.common.by import By
 from selenium.webdriver import Remote, ChromeOptions
 from selenium.webdriver.chromium.remote_connection import ChromiumRemoteConnection
@@ -6,6 +7,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from page_strucutre_handler import BrandPageStructureHandler
 from load_content import load_products
+from product_scraper import ProductScraper
+from typing import Optional, Dict
 from dotenv import load_dotenv
 import logging
 import os
@@ -50,44 +53,56 @@ class Scraper:
             self.logger.error(f"Error with cookie: {str(e)}")
             return None
 
-    def select_brands(self):
+    def select_brands(self) -> Optional[list[Tuple[str, str]]]:
         self.logger.info("Selecting brands")
 
         try:
             self.wait_for_element(By.CLASS_NAME, "brands-section")
-            brand_atag = self.driver.find_elements(By.CSS_SELECTOR, ".brands-section .sitemap-sublist-item a")
+            brand_items = self.driver.find_elements(
+                By.CSS_SELECTOR, ".brands-section .sitemap-sublist-item a"
+            )
 
             brands_list = []
-            repeat_links = ["crunch", "mirage"]
-            for link in brand_atag:
+            # :(
+            skip_links = ["crunch", "mirage", "purina", "maison perrier", "nestlebaby"]
+            for link in brand_items:
+                name = link.text.strip()
                 href = link.get_attribute("href")
-                if any(x in href for x in repeat_links):
+                if any(x in href for x in skip_links):
                     continue
 
-                brands_list.append(href)
+                brands_list.append((name, href))
             return brands_list
         except Exception as e:
             self.logger.error(f"Error with brands: {str(e)}")
             return None
 
-    def scrape_brand_data(self, url):
+    def scrape_brand_data(self, brand_obj: Tuple[str, str]):
+        brand_name = brand_obj[0]
+        url = brand_obj[1]
+
         self.logger.info(f"Scraping brand page: {url}")
         brand_handler = BrandPageStructureHandler()
-
+        product_scraper = ProductScraper(self.driver, self.logger)
         try:
             self.driver.get(url)
             load_products(self.driver)
             for pattern_name, pattern in brand_handler.patterns.items():
                 if self.driver.find_element(By.CSS_SELECTOR, pattern.validation_element):
+                    # Need to redo for different page structures
                     product_grid = self.driver.find_elements(By.CSS_SELECTOR, pattern.selectors["products"])
                     product_links = [element.get_attribute("href") for element in product_grid]
 
+                    # Scrape each product page
+                    for link in product_links:
+                        product_data = product_scraper.scrape_product_page(link, brand_name)
+                        if product_data:
+                            product_scraper.products_data.append(product_data)
+
+            product_scraper.save_to_json(f"../data/{brand_name}_products.json")
         except Exception as e:
             self.logger.error(f"Error with brand {url}: {str(e)}")
             return None
-
-    def scrape_product_page(self):
-        return None
 
     def scrape_site(self):
         try:
@@ -96,7 +111,11 @@ class Scraper:
 
             # Grab and scrape brand data
             brand_links = self.select_brands()
-            print(brand_links)
+
+            if brand_links:
+                print(brand_links)
+                for link in brand_links:
+                    self.scrape_brand_data(link)
         except Exception as e:
             self.logger.error(f"Error during scraping: {str(e)}")
             return None
