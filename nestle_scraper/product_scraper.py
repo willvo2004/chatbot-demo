@@ -41,13 +41,18 @@ class ProductScraper:
             self.driver.get(url)
             self.logger.info(f"Scraping product page: {url}")
 
+            WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, ".product-media-carousel"))
+            )
+
+            self.logger.info(f"Awaited loading for selector: {url}")
+
             name = self._safe_get_text(".product-title")
             size = self._safe_get_text(".product-size")
             description = self._safe_get_text(".product-description p")
             ingredients = self._safe_get_text(".coh-ce-50eb162d p")  # safe get is not working so yeah
 
             nutrition_facts = self.extract_nutrition()
-
             return ProductData(
                 url=url,
                 brand=brand,
