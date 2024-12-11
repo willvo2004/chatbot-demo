@@ -63,14 +63,16 @@ class ProductScraper:
                 nutrition_facts=nutrition_facts,
             )
 
-        except Exception:
+        except Exception as e:
+            self.logger.error(f"Something went wrong: {str(e)}")
             return None
 
     def _safe_get_text(self, selector: str) -> Optional[str]:
         try:
             element = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.CSS_SELECTOR, selector)))
             return element.text.strip()
-        except Exception:
+        except Exception as e:
+            self.logger.error(f"Error while locating element - {str(e)}")
             return None
 
     def extract_nutrition(self):
@@ -122,4 +124,23 @@ if __name__ == "__main__":
     driver = Remote(sbr_connection, options=ChromeOptions())
     logger = logging.getLogger(__name__)
     scraper = ProductScraper(driver, logger)
-    print(scraper.scrape_product_page("https://www.madewithnestle.ca/after-eight/after-eight", "After Eight"))
+
+    sample_data = {
+        "After Eight": [
+            {
+                "name": "AFTER EIGHT Dark Mint Bar",
+                "url": "https://www.madewithnestle.ca/after-eight/after-eight-dark-mint-bar",
+            }
+        ],
+        "Mackintosh Toffee": [
+            {
+                "name": "MACKINTOSH Toffee Bars",
+                "url": "https://www.madewithnestle.ca/mackintosh-toffee/mackintosh-toffee-bars",
+            }
+        ],
+    }
+    for brand, products in sample_data.items():
+        for product in products:
+            url = product["url"]
+            # Call the function with the extracted arguments
+            print(scraper.scrape_product_page(url, brand))

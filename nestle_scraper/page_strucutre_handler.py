@@ -12,22 +12,13 @@ class BrandPageStructureHandler:
             "standard": SelectorPattern(
                 name="standard",
                 validation_element=".views-element-container",
-                selectors={
-                    "products": ".views-field-title a",  # products
-                    "recipes": "",  # recipes
-                },
+                selectors={"products": ".views-field-title a", "recipes": "Recipes"},
             ),
-            # "alternate": SelectorPattern(
-            #     name="alternate",
-            #     validation_element=".product-container",
-            #     selectors={
-            #         "name": ".product-title",
-            #         "description": ".product-text",
-            #         "ingredients": ".ingredients",
-            #         "nutrition": ".nutrition-table",
-            #         "images": ".gallery img",
-            #     },
-            # ),
+            "nescafe": SelectorPattern(
+                name="nescafe",
+                validation_element=".home-coffee",
+                selectors={"products": ".product-title", "recipes": "Nescafe Recipes"},
+            ),
             # "legacy": SelectorPattern(
             #     name="legacy",
             #     validation_element="#oldProductTemplate",
