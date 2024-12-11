@@ -72,22 +72,51 @@ class Scraper:
         brand_handler = BrandPageStructureHandler()
         try:
             assert self.driver is not None
-            load_products(self.driver)
             self.logger.info(f"Opened {brand} page")
 
             brand_products = {}
             for pattern_name, pattern in brand_handler.patterns.items():
                 if pattern_name == "standard":
-                    if self.driver.find_element(By.CSS_SELECTOR, pattern.validation_element):
+                    if self.wait_for_element(By.CSS_SELECTOR, pattern.validation_element, 2):
                         # Need to redo for different page structures
+                        load_products(self.driver)
                         product_grid = self.driver.find_elements(By.CSS_SELECTOR, pattern.selectors["products"])
                         # Attach brand name to list of products
                         brand_products = [
                             {"name": element.text, "url": element.get_attribute("href")} for element in product_grid
                         ]
                 elif pattern_name == "nescafe":
-                    if self.driver.find_element(By.CSS_SELECTOR, pattern.validation_element):
-                        print("nescafe")
+                    if self.wait_for_element(By.CSS_SELECTOR, pattern.validation_element, 2):
+                        self.driver.get("https://www.madewithnestle.ca/nescaf%C3%A9/coffee")
+                        load_products(self.driver)
+                        product_grid = self.driver.find_elements(By.CSS_SELECTOR, pattern.selectors["products"])
+                        brand_products = [
+                            {"name": element.text, "url": element.get_attribute("href")} for element in product_grid
+                        ]
+                elif pattern_name == "haagen-dazs":
+                    if self.wait_for_element(By.CSS_SELECTOR, pattern.validation_element, 2):
+                        self.driver.get("https://www.haagen-dazs.ca/en/hd-en/products")
+                        load_products(self.driver)
+                        product_grid = self.driver.find_elements(By.CSS_SELECTOR, pattern.selectors["products"])
+                        brand_products = [
+                            {"name": element.text, "url": element.get_attribute("href")} for element in product_grid
+                        ]
+                elif pattern_name == "boost":
+                    if self.wait_for_element(By.CSS_SELECTOR, pattern.validation_element, 2):
+                        self.driver.get("https://www.madewithnestle.ca/boost/products#products")
+                        load_products(self.driver)
+                        product_grid = self.driver.find_elements(By.CSS_SELECTOR, pattern.selectors["products"])
+                        brand_products = [
+                            {"name": element.text, "url": element.get_attribute("href")} for element in product_grid
+                        ]
+                elif pattern_name == "natures-bounty":
+                    if self.wait_for_element(By.CSS_SELECTOR, pattern.validation_element, 2):
+                        self.driver.get("https://www.madewithnestle.ca/natures-bounty/our-products")
+                        load_products(self.driver)
+                        product_grid = self.driver.find_elements(By.CSS_SELECTOR, pattern.selectors["products"])
+                        brand_products = [
+                            {"name": element.text, "url": element.get_attribute("href")} for element in product_grid
+                        ]
             return brand_products
 
         except Exception as e:
@@ -187,10 +216,10 @@ if __name__ == "__main__":
 
         # Collect all products that belong to the brand
         brand_products = {}
-        for name, link in brands:
+        for brand_name, link in brands:
             scraper = Scraper(link)
-            products = scraper.collect_brand_products(name)
-            brand_products[name] = products
+            products = scraper.collect_brand_products(brand_name)
+            brand_products[brand_name] = products
 
         for brand, products in brand_products.items():
             for product in products:
@@ -203,8 +232,9 @@ if __name__ == "__main__":
     # Various cmd line arguments to test features
     elif sys.argv[1] == "load_test":
         # Confirm product loader for standard layout
-        scraper = Scraper("https://www.madewithnestle.ca/after-eight#products")
-        print(scraper.collect_brand_products("After Eight"))
+        scraper = Scraper("https://www.madewithnestle.ca/boost")
+        print(scraper.collect_brand_products("Boost"))
+
     elif sys.argv[1] == "test_brand_products":
         # Test brand product data format
         sample_brands = [
@@ -218,24 +248,10 @@ if __name__ == "__main__":
             brand_products[name] = products
         print(brand_products)
 
-    elif sys.argv[1] == "test_product":
-        sample_data = {
-            "After Eight": [
-                {
-                    "name": "AFTER EIGHT Dark Mint Bar",
-                    "url": "https://www.madewithnestle.ca/after-eight/after-eight-dark-mint-bar",
-                }
-            ],
-            "Mackintosh Toffee": [
-                {
-                    "name": "MACKINTOSH Toffee Bars",
-                    "url": "https://www.madewithnestle.ca/mackintosh-toffee/mackintosh-toffee-bars",
-                }
-            ],
-        }
-
-        for brand, products in sample_data.items():
-            for product in products:
-                url = product["url"]
-                scraper = Scraper(url)
-                print(scraper.collect_product_info(brand))
+    elif sys.argv[1] == "product_info":
+        urls = [
+            "https://www.haagen-dazs.ca/en/haagen-dazs/haagen-dazs-van-milk-choc-88ml",
+        ]
+        for url in urls:
+            scraper = Scraper(url)
+            print(scraper.collect_product_info("Haagen-dazs"))
