@@ -1,40 +1,77 @@
-import { useState } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { MessageCircle, Send, SidebarCloseIcon } from "lucide-react";
+import { tailspin } from "ldrs";
+
+type Message = {
+  type: string;
+  content: string;
+};
 
 const ChatInterface = () => {
-  const [messages, setMessages] = useState<string[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const sendMessage = async () => {
+  const sendMessage = useCallback(async () => {
     if (!input.trim()) return;
 
-    const userMessage = input;
+    const userMessage = input.trim();
     setInput("");
-    setMessages((prev) => [...prev, { type: "user", content: userMessage }]);
+
+    console.log("Before user message update:", messages);
+
+    // Update with user message
+    setMessages((prevMessages) => {
+      console.log("Updating with user message, prev:", prevMessages);
+      return [...prevMessages, { type: "user", content: userMessage }];
+    });
+
+    setIsLoading(true);
 
     try {
+      console.log("Sending API request...");
       const response = await fetch("http://127.0.0.1:8000/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: userMessage }),
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
 
-      setMessages((prev) => [...prev, { type: "bot", content: data.response }]);
+      if (!data || typeof data.answer === "undefined") {
+        throw new Error("Invalid response format from API");
+      }
+
+      // Update with bot response
+      setMessages((prevMessages) => {
+        console.log("Updating with bot message, prev:", prevMessages);
+        return [...prevMessages, { type: "bot", content: data.answer }];
+      });
     } catch (error) {
-      console.log(error);
-      setMessages((prev) => [
-        ...prev,
+      console.error("Chat error:", error);
+      setMessages((prevMessages) => [
+        ...prevMessages,
         {
           type: "error",
           content: "Sorry, I encountered an error. Please try again.",
         },
       ]);
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [input, messages]);
 
+  // Effect for monitoring messages changes
+  useEffect(() => {
+    console.log("Messages updated:", messages);
+  }, [messages]);
+
+  tailspin.register();
   return (
     <div className="fixed bottom-4 right-4">
       {!isOpen ? (
@@ -71,6 +108,14 @@ const ChatInterface = () => {
                 </div>
               </div>
             ))}
+            {isLoading && (
+              <l-tailspin
+                size={40}
+                stroke={5}
+                speed={0.9}
+                color={"black"}
+              ></l-tailspin>
+            )}
           </div>
 
           <div className="p-4 border-t">

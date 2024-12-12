@@ -41,7 +41,6 @@ async def call_openai(prompt: str) -> str:
         assert endpoint is not None
         response = await client.post(endpoint, headers=headers, json=payload)
         response_json = response.json()
-        print(response.json())
         return response_json["choices"][0]["message"]["content"].strip()
 
 
@@ -75,4 +74,5 @@ async def ask(user_query: UserQuery):
     """
 
     answer = await call_openai(prompt)
+    print(answer)
     return {"answer": answer, "sources": [d.get("url") for d in docs]}
