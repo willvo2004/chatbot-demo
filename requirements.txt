@@ -1,5 +1,5 @@
 azure-functions
-beautifulsoup4
 aiohttp
 azure-storage-blob
-tenacity
+azure-search-documents
+selenium

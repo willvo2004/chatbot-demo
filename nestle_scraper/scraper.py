@@ -5,10 +5,13 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from page_strucutre_handler import BrandPageStructureHandler
+from write_to_json import process_scraped_product
+from upload_documents import upload_documents
 from load_content import load_products
 from scraping_logic import parse_nutrients
 from typing import Optional, Tuple
 from dotenv import load_dotenv
+import pprint
 import logging
 import sys
 import os
@@ -51,7 +54,7 @@ class Scraper:
 
             brands_list = []
             # :(
-            skip_links = ["crunch", "mirage", "purina", "maison perrier", "nestlebaby"]
+            skip_links = ["crunch", "mirage", "purina", "sanpellegrino", "maisonperrier", "nestlebaby", "drumstick"]
             for link in brand_items:
                 name = link.text.strip()
                 href = link.get_attribute("href")
@@ -87,6 +90,8 @@ class Scraper:
                         ]
                 elif pattern_name == "nescafe":
                     if self.wait_for_element(By.CSS_SELECTOR, pattern.validation_element, 2):
+                        self.driver.quit()
+                        self.init_driver()
                         self.driver.get("https://www.madewithnestle.ca/nescaf%C3%A9/coffee")
                         load_products(self.driver)
                         product_grid = self.driver.find_elements(By.CSS_SELECTOR, pattern.selectors["products"])
@@ -95,6 +100,9 @@ class Scraper:
                         ]
                 elif pattern_name == "haagen-dazs":
                     if self.wait_for_element(By.CSS_SELECTOR, pattern.validation_element, 2):
+                        # Work around for buggy behaviour
+                        self.driver.quit()
+                        self.init_driver()
                         self.driver.get("https://www.haagen-dazs.ca/en/hd-en/products")
                         load_products(self.driver)
                         product_grid = self.driver.find_elements(By.CSS_SELECTOR, pattern.selectors["products"])
@@ -133,12 +141,12 @@ class Scraper:
             ingredients = self._safe_get_text(".sub-ingredients").split(",")
             nutrients = parse_nutrients(self._safe_get_text(".nutrients-container"))
             return {
+                "url": url,  # KEY=true
                 "name": name,
                 "size": size,
                 "brand": brand,
                 "nutrients": nutrients,
                 "ingredients": ingredients,
-                "url": url,
             }
         except Exception as e:
             self.logger.error(f"Something went wrong: {str(e)}")
@@ -173,7 +181,8 @@ class Scraper:
             self.logger.error(f"Error while collecting brands: {str(e)}")
             return None
         finally:
-            self.driver.quit()
+            if self.driver:
+                self.driver.quit()
 
     def collect_brand_products(self, name: str):
         try:
@@ -188,7 +197,8 @@ class Scraper:
             self.logger.error(f"Error while collecting brand products: {str(e)}")
             return None
         finally:
-            self.driver.quit()
+            if self.driver:
+                self.driver.quit()
 
     def collect_product_info(self, brand: str):
         try:
@@ -202,7 +212,8 @@ class Scraper:
             self.logger.error(f"Error occured while collecting product information: {str(e)}")
             return None
         finally:
-            self.driver.quit()
+            if self.driver:
+                self.driver.quit()
 
 
 if __name__ == "__main__":
@@ -221,19 +232,29 @@ if __name__ == "__main__":
             products = scraper.collect_brand_products(brand_name)
             brand_products[brand_name] = products
 
+        # Scrape all products collected. Do not need to run every time.
         for brand, products in brand_products.items():
             for product in products:
                 url = product["url"]
                 scraper = Scraper(url)
                 product_info = scraper.collect_product_info(brand)
 
-        # Run data processing on brand products via azure services
-
+                if product_info:
+                    filepath = process_scraped_product(product_info)
+                    print(f"Write file to {filepath}")
     # Various cmd line arguments to test features
     elif sys.argv[1] == "load_test":
         # Confirm product loader for standard layout
         scraper = Scraper("https://www.madewithnestle.ca/boost")
         print(scraper.collect_brand_products("Boost"))
+
+    elif sys.argv[1] == "nescafe":
+        scraper = Scraper("https://www.madewithnestle.ca/nescafe")
+        scraper.collect_brand_products("nescafe")
+
+    elif sys.argv[1] == "natures-bounty":
+        scraper = Scraper("https://www.madewithnestle.ca/natures-bounty")
+        scraper.collect_brand_products("natures-bounty")
 
     elif sys.argv[1] == "test_brand_products":
         # Test brand product data format
@@ -250,8 +271,11 @@ if __name__ == "__main__":
 
     elif sys.argv[1] == "product_info":
         urls = [
-            "https://www.haagen-dazs.ca/en/haagen-dazs/haagen-dazs-van-milk-choc-88ml",
+            "https://www.madewithnestle.ca/boost/boost-plus-calories-chocolate",
         ]
         for url in urls:
             scraper = Scraper(url)
-            print(scraper.collect_product_info("Haagen-dazs"))
+            product_info = scraper.collect_product_info("Boost")
+            pprint.pp(product_info)
+            if product_info:
+                process_scraped_product(product_info)

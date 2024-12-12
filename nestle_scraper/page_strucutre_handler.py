@@ -12,12 +12,12 @@ class BrandPageStructureHandler:
         self.patterns = {
             "standard": SelectorPattern(
                 name="standard",
-                validation_element=".views-element-container",
+                validation_element=".view-id-product_listing",
                 selectors={"products": ".views-field-title a", "recipes": "Recipes"},
             ),
             "nescafe": SelectorPattern(
                 name="nescafe",
-                validation_element=".home-coffee",
+                validation_element=".nescafe",
                 selectors={"products": ".product-title", "recipes": "Nescafe Recipes"},
             ),
             "haagen-dazs": SelectorPattern(
@@ -34,6 +34,15 @@ class BrandPageStructureHandler:
                 name="natures-bounty",
                 validation_element=".natures-bounty",
                 selectors={"products": ".views-field-title a", "recipes": ""},
+            ),
+            "drumstick": SelectorPattern(
+                name="drumstick",
+                validation_element=".drumstick",
+                selectors={
+                    "product_url": ".product-title",
+                    "product_title": ".product-drumstick .coh-heading",
+                    "recipes": "",
+                },
             ),
             # "legacy": SelectorPattern(
             #     name="legacy",
