@@ -2,7 +2,7 @@ import { useState } from "react";
 import { MessageCircle, Send, SidebarCloseIcon } from "lucide-react";
 
 const ChatInterface = () => {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<string[]>([]);
   const [input, setInput] = useState("");
   const [isOpen, setIsOpen] = useState(false);
 
@@ -17,7 +17,7 @@ const ChatInterface = () => {
       const response = await fetch("http://127.0.0.1:8000/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userMessage }),
+        body: JSON.stringify({ query: userMessage }),
       });
 
       const data = await response.json();
