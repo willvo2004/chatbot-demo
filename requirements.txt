@@ -2,4 +2,5 @@ azure-functions
 aiohttp
 azure-storage-blob
 azure-search-documents
+azure-ai-infernece
 selenium

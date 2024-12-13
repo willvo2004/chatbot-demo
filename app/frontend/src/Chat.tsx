@@ -5,6 +5,7 @@ import { tailspin } from "ldrs";
 type Message = {
   type: string;
   content: string;
+  source: string;
 };
 
 const ChatInterface = () => {
@@ -50,7 +51,10 @@ const ChatInterface = () => {
       // Update with bot response
       setMessages((prevMessages) => {
         console.log("Updating with bot message, prev:", prevMessages);
-        return [...prevMessages, { type: "bot", content: data.answer }];
+        return [
+          ...prevMessages,
+          { type: "bot", content: data.answer, source: data.sources },
+        ];
       });
     } catch (error) {
       console.error("Chat error:", error);
@@ -100,7 +104,7 @@ const ChatInterface = () => {
                 className={`flex ${msg.type === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`p-3 rounded-lg max-w-[80%] text-black ${
+                  className={`p-3 rounded-lg max-w-[80%] text-black text-start ${
                     msg.type === "user" ? "bg-blue-100" : "bg-gray-100"
                   }`}
                 >
