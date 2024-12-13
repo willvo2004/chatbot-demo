@@ -5,7 +5,7 @@ import { tailspin } from "ldrs";
 type Message = {
   type: string;
   content: string;
-  source: string;
+  sources: string[];
 };
 
 const ChatInterface = () => {
@@ -75,6 +75,14 @@ const ChatInterface = () => {
     console.log("Messages updated:", messages);
   }, [messages]);
 
+  const extractUrl = (source) => {
+    try {
+      const content = JSON.parse(source.content);
+      return content.url;
+    } catch {
+      return null;
+    }
+  };
   tailspin.register();
   return (
     <div className="fixed bottom-4 right-4">
@@ -108,17 +116,33 @@ const ChatInterface = () => {
                     msg.type === "user" ? "bg-blue-100" : "bg-gray-100"
                   }`}
                 >
-                  {msg.content}
+                  <div>{msg.content}</div>
+                  {msg.sources?.length > 0 && (
+                    <div className="mt-2 space-y-1">
+                      {msg.sources.map((src, i) => {
+                        const url = extractUrl(src);
+                        return (
+                          url && (
+                            <a
+                              key={i}
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-blue-600 hover:underline block"
+                            >
+                              Source {i + 1}: {url}
+                              {console.log(url)}
+                            </a>
+                          )
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
             {isLoading && (
-              <l-tailspin
-                size={40}
-                stroke={5}
-                speed={0.9}
-                color={"black"}
-              ></l-tailspin>
+              <l-tailspin size={40} stroke={5} speed={0.9} color="black" />
             )}
           </div>
 

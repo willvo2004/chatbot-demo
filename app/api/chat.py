@@ -124,8 +124,7 @@ def truncate_context(context_list: List[SearchResult], max_tokens: int = 600) ->
     system_prompt = """You are a helpful assistant for the Nestlé website. 
     Use the provided context to answer questions accurately. 
     If you're not sure about something, say so rather than making assumptions.
-    Always maintain a professional and friendly tone. Include your sources when
-    the query mentions any thing that requires company specific data."""
+    Always maintain a professional and friendly tone."""
 
     # Reserve tokens for system prompt, user query, and response
     reserved_tokens = count_tokens(system_prompt) + 250  # 150 for query and formatting
