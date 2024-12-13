@@ -5,7 +5,16 @@ import { tailspin } from "ldrs";
 type Message = {
   type: string;
   content: string;
-  sources: string[];
+  sources: Source[];
+};
+
+type Source = {
+  content: {
+    id: string;
+    url: string;
+  };
+  source: string;
+  score: number;
 };
 
 const ChatInterface = () => {
@@ -53,7 +62,7 @@ const ChatInterface = () => {
         console.log("Updating with bot message, prev:", prevMessages);
         return [
           ...prevMessages,
-          { type: "bot", content: data.answer, source: data.sources },
+          { type: "bot", content: data.answer, sources: data.sources },
         ];
       });
     } catch (error) {
@@ -75,13 +84,9 @@ const ChatInterface = () => {
     console.log("Messages updated:", messages);
   }, [messages]);
 
-  const extractUrl = (source) => {
-    try {
-      const content = JSON.parse(source.content);
-      return content.url;
-    } catch {
-      return null;
-    }
+  const extractUrl = (source: Source): string => {
+    const content = JSON.parse(source.content);
+    return content.url;
   };
   tailspin.register();
   return (
@@ -117,10 +122,10 @@ const ChatInterface = () => {
                   }`}
                 >
                   <div>{msg.content}</div>
-                  {msg.sources?.length > 0 && (
+                  {msg.type === "bot" && msg.sources && (
                     <div className="mt-2 space-y-1">
-                      {msg.sources.map((src, i) => {
-                        const url = extractUrl(src);
+                      {msg.sources.map((source, i) => {
+                        const url = extractUrl(source);
                         return (
                           url && (
                             <a
@@ -131,7 +136,6 @@ const ChatInterface = () => {
                               className="text-xs text-blue-600 hover:underline block"
                             >
                               Source {i + 1}: {url}
-                              {console.log(url)}
                             </a>
                           )
                         );
@@ -142,7 +146,7 @@ const ChatInterface = () => {
               </div>
             ))}
             {isLoading && (
-              <l-tailspin size={40} stroke={5} speed={0.9} color="black" />
+              <l-tailspin size={40} stroke={5} speed={0.9} color="grey" />
             )}
           </div>
 

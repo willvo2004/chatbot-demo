@@ -178,8 +178,33 @@ def generate_response(query: str, context: List[SearchResult]) -> str:
         raise HTTPException(status_code=500, detail="Failed to generate response")
 
 
+def needs_context(query: str) -> bool:
+    # List of patterns or keywords that indicate general/non-contextual questions
+    general_questions = [
+        "who are you",
+        "what can you do",
+        "hello",
+        "hi",
+        "help",
+        "how do you work",
+        "what are you",
+        "your name",
+        "introduce yourself",
+    ]
+
+    # Check if query matches any general patterns
+    query = query.lower().strip()
+    return not any(q in query for q in general_questions)
+
+
 @app.post("/api/chat")
 async def chat_endpoint(query: ChatQuery):
+    if not needs_context(query.query):
+        # Return response without context
+        return {
+            "answer": "I am an AI assistant for the Made with Nestlé website. I can help you find recipes, cooking tips, and answer questions about Nestlé products.",
+            "sources": [],  # Empty sources array
+        }
     try:
         query_embedding = get_embeddings(query.query)
         search_results = search_documents(query_embedding)
