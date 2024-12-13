@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from azure.search.documents.models import VectorizedQuery
 from typing import List, Tuple, Dict
 from pydantic.main import BaseModel
+import json
 import tiktoken
 import os
 from dotenv import load_dotenv
@@ -47,6 +48,8 @@ search_client = SearchClient(
     credential=AzureKeyCredential(key=search_connection.key),
 )
 
+chat = project.inference.get_chat_completions_client()
+
 
 class ChatQuery(BaseModel):
     query: str
@@ -58,10 +61,23 @@ class SearchResult(BaseModel):
     score: float
 
 
-def get_embeddings(text: List[str]) -> List[float]:
+def get_embeddings(text: str) -> List[float]:
     try:
+        messages = [
+            {
+                "role": "system",
+                "content": """You are an AI assistant that generates search queries for Nestlé website content. 
+                Given a user query, infer the user's intent and provide a search query. Format a JSON response 
+                with a search_query field that would best find relevant information. 
+                Example: {"search_query": "Does Nestle sell kitkat chocolate"}""",
+            },
+            {"role": "user", "content": text},
+        ]
+
+        intent_response = chat.complete(model="gpt-4o-mini", messages=messages, temperature=0.7, max_tokens=150)
+        search_query = intent_response.choices[0].message.content
         embeddings = project.inference.get_embeddings_client()
-        response = embeddings.embed(model="text-embedding-ada-002", input=text, encoding_format="float")
+        response = embeddings.embed(model="text-embedding-ada-002", input=search_query, encoding_format="float")
 
         floats_array = response.data[0].embedding
         return floats_array
@@ -77,13 +93,11 @@ def search_documents(query_vector: List[float], top_k: int = 3) -> List[SearchRe
         results = search_client.search(
             search_text=None, vector_queries=[vector_query], select=["chunk", "title", "chunk_id", "parent_id"]
         )
-
         search_results = []
         for result in results:
             search_results.append(
                 SearchResult(content=result["chunk"], source=result["parent_id"], score=result["@search.score"])
             )
-
         return search_results
     except Exception as e:
         print(f"Error searching documents: {e}")
@@ -101,7 +115,7 @@ def count_tokens(text: str) -> int:
         return int(len(text.split()) * 1.3)
 
 
-def truncate_context(context_list: List[SearchResult], max_tokens: int = 500) -> Tuple[str, List[Dict]]:
+def truncate_context(context_list: List[SearchResult], max_tokens: int = 600) -> Tuple[str, List[Dict]]:
     """Truncate context to fit within token limit while preserving the most relevant information."""
     truncated_contexts = []
     sources = []
@@ -110,10 +124,11 @@ def truncate_context(context_list: List[SearchResult], max_tokens: int = 500) ->
     system_prompt = """You are a helpful assistant for the Nestlé website. 
     Use the provided context to answer questions accurately. 
     If you're not sure about something, say so rather than making assumptions.
-    Always maintain a professional and friendly tone."""
+    Always maintain a professional and friendly tone. Include your sources when
+    the query mentions any thing that requires company specific data."""
 
     # Reserve tokens for system prompt, user query, and response
-    reserved_tokens = count_tokens(system_prompt) + 150  # 150 for query and formatting
+    reserved_tokens = count_tokens(system_prompt) + 250  # 150 for query and formatting
     remaining_tokens = max_tokens - reserved_tokens
 
     for result in sorted(context_list, key=lambda x: x.score, reverse=True):
@@ -152,7 +167,6 @@ def generate_response(query: str, context: List[SearchResult]) -> str:
 
         user_prompt = f"""Context: {context_text}\n\nQuestion: {query}\n\n
         Please provide a concise answer based on the context provided."""
-        chat = project.inference.get_chat_completions_client()
         response = chat.complete(
             model="gpt-4o-mini",
             messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}],
@@ -168,7 +182,7 @@ def generate_response(query: str, context: List[SearchResult]) -> str:
 @app.post("/api/chat")
 async def chat_endpoint(query: ChatQuery):
     try:
-        query_embedding = get_embeddings(list(query.query))
+        query_embedding = get_embeddings(query.query)
         search_results = search_documents(query_embedding)
         answer = generate_response(query.query, search_results)
 
