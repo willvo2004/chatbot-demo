@@ -1,0 +1,10 @@
+azure-ai-inference==1.0.0b6
+azure-ai-projects==1.0.0b2
+azure-search-documents==11.5.2
+azure-core==1.32.0
+azure-identity==1.19.0
+tiktoken==0.8.0
+pydantic==2.10.3
+pydantic_core==2.27.1
+pydantic_settings
+fastapi[standard]

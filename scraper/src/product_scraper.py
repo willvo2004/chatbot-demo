@@ -4,7 +4,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chromium.remote_connection import ChromiumRemoteConnection
 from selenium.webdriver import Remote, ChromeOptions
 from dataclasses import dataclass
-from typing import List, Optional, Dict
+from typing import List, Optional
 from dotenv import load_dotenv
 import re
 import logging

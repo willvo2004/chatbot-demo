@@ -9,14 +9,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from azure.search.documents.models import VectorizedQuery
 from typing import List, Tuple, Dict
 from pydantic.main import BaseModel
-import json
+from config import get_settings
 import tiktoken
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
-
-
+settings = get_settings()
 app = FastAPI()
 
 app.add_middleware(
@@ -27,27 +26,30 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-project_connection_string = os.getenv("CONNECTION_STRING")
-assert project_connection_string is not None
 
-project = AIProjectClient.from_connection_string(
-    conn_str=project_connection_string, credential=DefaultAzureCredential()
-)
+def initialize_clients():
+    project = AIProjectClient.from_connection_string(
+        conn_str=settings.CONNECTION_STRING, credential=DefaultAzureCredential()
+    )
 
-search_connection = project.connections.get_default(
-    connection_type=ConnectionType.AZURE_AI_SEARCH, include_credentials=True
-)
+    search_connection = project.connections.get_default(
+        connection_type=ConnectionType.AZURE_AI_SEARCH, include_credentials=True
+    )
 
-index_client = SearchIndexClient(
-    endpoint=search_connection.endpoint_url, credential=AzureKeyCredential(key=search_connection.key)
-)
+    index_client = SearchIndexClient(
+        endpoint=search_connection.endpoint_url, credential=AzureKeyCredential(key=search_connection.key)
+    )
 
-search_client = SearchClient(
-    index_name="product-vector-index",
-    endpoint=search_connection.endpoint_url,
-    credential=AzureKeyCredential(key=search_connection.key),
-)
+    search_client = SearchClient(
+        index_name=settings.AZURE_SEARCH_INDEX,
+        endpoint=search_connection.endpoint_url,
+        credential=AzureKeyCredential(key=search_connection.key),
+    )
 
+    return project, search_client, index_client
+
+
+project, search_client, index_client = initialize_clients()
 chat = project.inference.get_chat_completions_client()
 
 

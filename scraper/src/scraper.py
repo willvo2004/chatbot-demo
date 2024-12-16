@@ -6,7 +6,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from page_strucutre_handler import BrandPageStructureHandler
 from write_to_json import process_scraped_product
-from upload_documents import upload_documents
 from load_content import load_products
 from scraping_logic import parse_nutrients
 from typing import Optional, Tuple

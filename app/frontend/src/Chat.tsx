@@ -41,11 +41,14 @@ const ChatInterface = () => {
 
     try {
       console.log("Sending API request...");
-      const response = await fetch("http://127.0.0.1:8000/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: userMessage }),
-      });
+      const response = await fetch(
+        "https://chatbot-backend.yellowisland-9e9a6de3.eastus.azurecontainerapps.io/api/chat",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: userMessage }),
+        },
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -85,8 +88,13 @@ const ChatInterface = () => {
   }, [messages]);
 
   const extractUrl = (source: Source): string => {
-    const content = JSON.parse(source.content);
-    return content.url;
+    try {
+      const content = JSON.parse(source.content);
+      return content.url;
+    } catch (error) {
+      console.log(error, source);
+      return "";
+    }
   };
   tailspin.register();
   return (
@@ -109,7 +117,6 @@ const ChatInterface = () => {
               <SidebarCloseIcon className="w-5 h-5" />
             </button>
           </div>
-
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.map((msg, idx) => (
               <div
@@ -123,7 +130,8 @@ const ChatInterface = () => {
                 >
                   <div>{msg.content}</div>
                   {msg.type === "bot" && msg.sources && (
-                    <div className="mt-2 space-y-1">
+                    <div className="align-bottom text-xs mt-2 space-y-1 flex gap-4 items-end">
+                      <p className="">References:</p>
                       {msg.sources.map((source, i) => {
                         const url = extractUrl(source);
                         return (
@@ -133,9 +141,9 @@ const ChatInterface = () => {
                               href={url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-xs text-blue-600 hover:underline block"
+                              className="text-blue-600 hover:underline block mt-1 bg-gray-200 px-1 rounded-lg"
                             >
-                              Source {i + 1}: {url}
+                              {i + 1}
                             </a>
                           )
                         );
@@ -146,7 +154,7 @@ const ChatInterface = () => {
               </div>
             ))}
             {isLoading && (
-              <l-tailspin size={40} stroke={5} speed={0.9} color="grey" />
+              <l-tailspin size={30} stroke={5} speed={0.9} color="grey" />
             )}
           </div>
 

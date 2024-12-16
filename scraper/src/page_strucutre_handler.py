@@ -44,15 +44,4 @@ class BrandPageStructureHandler:
                     "recipes": "",
                 },
             ),
-            # "legacy": SelectorPattern(
-            #     name="legacy",
-            #     validation_element="#oldProductTemplate",
-            #     selectors={
-            #         "name": "#productName",
-            #         "description": "#productDescription",
-            #         "ingredients": "#ingredientsList",
-            #         "nutrition": "#nutritionPanel",
-            #         "images": "#productGallery img",
-            #     },
-            # ),
         }

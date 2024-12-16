@@ -1,5 +1,3 @@
-from selenium.webdriver.common.by import By
-from selenium.webdriver import Remote
 import re
 
 
