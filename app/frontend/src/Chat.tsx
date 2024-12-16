@@ -33,14 +33,15 @@ const ChatInterface = () => {
 
     // Update with user message
     setMessages((prevMessages) => {
-      console.log("Updating with user message, prev:", prevMessages);
-      return [...prevMessages, { type: "user", content: userMessage }];
+      return [
+        ...prevMessages,
+        { type: "user", content: userMessage, sources: [] },
+      ];
     });
 
     setIsLoading(true);
 
     try {
-      console.log("Sending API request...");
       const response = await fetch(
         "https://chatbot-backend.yellowisland-9e9a6de3.eastus.azurecontainerapps.io/api/chat",
         {
@@ -75,6 +76,7 @@ const ChatInterface = () => {
         {
           type: "error",
           content: "Sorry, I encountered an error. Please try again.",
+          sources: [],
         },
       ]);
     } finally {
@@ -89,8 +91,11 @@ const ChatInterface = () => {
 
   const extractUrl = (source: Source): string => {
     try {
-      const content = JSON.parse(source.content);
-      return content.url;
+      const parsedContent = JSON.parse(String(source.content)) as {
+        id: string;
+        url: string;
+      };
+      return parsedContent.url;
     } catch (error) {
       console.log(error, source);
       return "";
@@ -129,9 +134,9 @@ const ChatInterface = () => {
                   }`}
                 >
                   <div>{msg.content}</div>
-                  {msg.type === "bot" && msg.sources && (
+                  {msg.type === "bot" && msg.sources.length > 0 && (
                     <div className="align-bottom text-xs mt-2 space-y-1 flex gap-4 items-end">
-                      <p className="">References:</p>
+                      <p>References:</p>
                       {msg.sources.map((source, i) => {
                         const url = extractUrl(source);
                         return (
