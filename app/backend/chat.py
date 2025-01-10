@@ -71,7 +71,7 @@ def get_embeddings(text: str) -> List[float]:
                 "content": """You are an AI assistant that generates search queries for Nestlé website content. 
                 Given a user query, infer the user's intent and provide a search query. Format a JSON response 
                 with a search_query field that would best find relevant information. 
-                Example: {"search_query": "Does Nestle sell kitkat chocolate"}""",
+                Examples: {"search_query": "Does Nestle sell kitkat chocolate"}""",
             },
             {"role": "user", "content": text},
         ]
@@ -162,9 +162,42 @@ def generate_response(query: str, context: List[SearchResult]) -> str:
         context_text, used_sources = truncate_context(context)
         # Create the prompt
         system_prompt = """You are a helpful assistant for the Nestlé website. 
-        Use the provided context to answer questions accurately. 
-        If you're not sure about something, say so rather than making assumptions.
-        Always maintain a professional and friendly tone."""
+        Use the provided context to answer questions accurately and structure your responses like a product information card:
+
+        1. Start with a direct answer to the question
+        2. List specific product variations with their details in bullet points
+        3. Include nutritional information when available
+        4. Add a reference link when relevant
+        
+        Format your response as a JSON object with these fields:
+        {
+            "mainAnswer": "The primary response to the question",
+            "productDetails": [
+                {
+                    "name": "Product name/variant",
+                    "details": ["Detail 1", "Detail 2"]
+                }
+            ],
+            "referenceLink": "URL or text reference",
+            "followUpInfo": "Additional relevant information (optional)"
+        }
+
+        Example for calories question:
+        {
+            "mainAnswer": "The calorie content of a KitKat bar varies depending on the size and type:",
+            "productDetails": [
+                {
+                    "name": "KITKAT 4-Finger Wafer Bar, Milk Chocolate (45 g)",
+                    "details": ["Calories: 230 per bar"]
+                },
+                {
+                    "name": "KITKAT mini Chocolate Wafer Bars Pack of 30",
+                    "details": ["Calories: 100 per 2 bars (25g)"]
+                }
+            ],
+            "referenceLink": "For more information, visit our nutrition page",
+            "followUpInfo": "Calorie content may vary by region and recipe"
+        }"""
 
         user_prompt = f"""Context: {context_text}\n\nQuestion: {query}\n\n
         Please provide a concise answer based on the context provided."""
@@ -181,22 +214,51 @@ def generate_response(query: str, context: List[SearchResult]) -> str:
 
 
 def needs_context(query: str) -> bool:
-    # List of patterns or keywords that indicate general/non-contextual questions
-    general_questions = [
-        "who are you",
-        "what can you do",
+    """Determine if a query needs context from the knowledge base."""
+    query = query.lower().strip()
+
+    # Patterns that indicate general/meta questions about the chatbot
+    general_patterns = [
+        "you",
+        "your",
+        "chatbot",
+        "bot",
+        "ai",
+        "assistant",
+        "help",
         "hello",
         "hi",
-        "help",
-        "how do you work",
-        "what are you",
-        "your name",
-        "introduce yourself",
+        "hey",
+        "greetings",
+        "what can",
+        "how do",
+        "who are",
+        "what are",
     ]
 
-    # Check if query matches any general patterns
-    query = query.lower().strip()
-    return not any(q in query for q in general_questions)
+    # Check if query is primarily about the chatbot itself
+    if any(pattern in query for pattern in general_patterns):
+        return False
+
+    # Patterns that suggest we need Nestlé-specific context
+    context_patterns = [
+        "nestle",
+        "nestlé",
+        "product",
+        "recipe",
+        "food",
+        "chocolate",
+        "candy",
+        "ingredients",
+        "nutrition",
+        "where can i",
+        "how much",
+        "what is",
+        "when",
+    ]
+
+    # Return True only if we have indication we need Nestlé context
+    return any(pattern in query for pattern in context_patterns)
 
 
 @app.post("/api/chat")
@@ -204,7 +266,7 @@ async def chat_endpoint(query: ChatQuery):
     if not needs_context(query.query):
         # Return response without context
         return {
-            "answer": "I am an AI assistant for the Made with Nestlé website. I can help you find recipes, cooking tips, and answer questions about Nestlé products.",
+            "answer": "Hello! I am an AI assistant for the Made with Nestlé website. I can help you find recipes, cooking tips, and answer questions about Nestlé products.",
             "sources": [],  # Empty sources array
         }
     try:
