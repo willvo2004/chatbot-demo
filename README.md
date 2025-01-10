@@ -8,4 +8,8 @@ Because the backend API can be accessed via a public address you can run this sa
 - `npm install`
 - `npm run dev`
 
-From there, a local instance can be ran and tested with
+You can optionally change the fetch endpoint to `localhost` and run the fastAPI program locally.
+To run the server locally
+- `cd app/backend`
+- `pip install -r requirements.txt`
+- `fastapi dev chat.py`
