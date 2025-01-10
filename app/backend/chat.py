@@ -214,51 +214,54 @@ def generate_response(query: str, context: List[SearchResult]) -> str:
 
 
 def needs_context(query: str) -> bool:
-    """Determine if a query needs context from the knowledge base."""
     query = query.lower().strip()
 
-    # Patterns that indicate general/meta questions about the chatbot
-    general_patterns = [
-        "you",
-        "your",
-        "chatbot",
-        "bot",
-        "ai",
-        "assistant",
-        "help",
-        "hello",
-        "hi",
-        "hey",
-        "greetings",
-        "what can",
-        "how do",
-        "who are",
-        "what are",
-    ]
-
-    # Check if query is primarily about the chatbot itself
-    if any(pattern in query for pattern in general_patterns):
-        return False
-
-    # Patterns that suggest we need Nestlé-specific context
-    context_patterns = [
+    # First, check for exact product names - these ALWAYS need context
+    product_names = [
+        "kitkat",
+        "kit kat",
+        "kit-kat",
         "nestle",
         "nestlé",
-        "product",
-        "recipe",
-        "food",
-        "chocolate",
-        "candy",
-        "ingredients",
-        "nutrition",
-        "where can i",
-        "how much",
-        "what is",
-        "when",
+        "smarties",
+        "aero",
+        "coffee crisp",
+        # Add other Nestlé products
     ]
 
-    # Return True only if we have indication we need Nestlé context
-    return any(pattern in query for pattern in context_patterns)
+    if any(product in query for product in product_names):
+        return True
+
+    # Then check for product-related terms
+    product_terms = [
+        "calories",
+        "nutrition",
+        "ingredients",
+        "recipe",
+        "product",
+        "chocolate",
+        "where can i buy",
+        "how much",
+        "price",
+    ]
+
+    if any(term in query for term in product_terms):
+        return True
+
+    # Only then check for general chatbot questions
+    general_questions = [
+        "who are you",
+        "what can you do",
+        "hello",
+        "hi",
+        "help",
+        "how do you work",
+        "what are you",
+        "your name",
+        "introduce yourself",
+    ]
+
+    return not any(q in query for q in general_questions)
 
 
 @app.post("/api/chat")
